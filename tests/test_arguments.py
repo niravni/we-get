@@ -3,7 +3,7 @@
 """
 
 import docopt
-from we_get.core.we_get import __doc__
+from tget.core.we_get import __doc__
 import unittest
 import sys
 

@@ -16,7 +16,7 @@ try:
 except ImportError:
     HAS_CLOUDSCRAPER = False
 
-from we_get.core.utils import random_user_agent
+from tget.core.utils import random_user_agent
 
 # Modern user agents - always use these instead of old ones from the file
 MODERN_USER_AGENTS = [

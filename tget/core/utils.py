@@ -13,7 +13,7 @@ from typing import Dict, Optional
 from colorama import Fore, Style
 from colorama import init as colorama_init
 
-from we_get import __file__ as p
+from tget import __file__ as p
 
 colorama_init(autoreset=True)
 
@@ -55,7 +55,7 @@ def format_help(doc, errmsg):
         msg_error("%s" % (errmsg), True)
     sys.stdout.write("Copyright (c) 2016 by 0xl3vi <0xl3vi@gmail.com>.\n")
     sys.stdout.write(
-        "Full documentation at: <http://github.com/0xl3vi/we-get>\n"
+        "Full documentation at: <http://github.com/0xl3vi/tget>\n"
     )
 
 

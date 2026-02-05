@@ -2,7 +2,7 @@
 Copyright (c) 2016-2020 we-get developers (https://github.com/rachmadaniHaryono/we-get/)
 See the file 'LICENSE' for copying permission
 """
-from we_get.core.module import Module
+from tget.core.module import Module
 import urllib
 import json
 
@@ -15,7 +15,7 @@ API_TRACKERS = "&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969%2Fannounce&tr=udp
 
 
 class the_pirate_bay(object):
-    """the_pirate_bay module for we-get."""
+    """the_pirate_bay module for tget."""
 
     def __init__(self, pargs):
         self.links = None

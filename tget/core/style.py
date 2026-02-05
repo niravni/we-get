@@ -97,7 +97,7 @@ try:
         # Entering a Vi digraph.
         Token.Digraph: '#4444ff',
     })
-    we_get_prompt_style = DEFAULT_STYLE_EXTENSIONS
+    tget_prompt_style = DEFAULT_STYLE_EXTENSIONS
 except TypeError as e:
     log.debug('{}:{}'.format(type(e), e))
-    we_get_prompt_style = None
+    tget_prompt_style = None

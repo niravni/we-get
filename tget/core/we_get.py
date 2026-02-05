@@ -19,7 +19,7 @@ from urllib.error import HTTPError, URLError
 import requests
 from docopt import docopt
 
-from we_get.core.utils import (
+from tget.core.utils import (
     format_help,
     list_wg_modules,
     msg_err_trace,
@@ -158,7 +158,7 @@ class WGSelect(object):
         for target in self.targets:
             if not self.results_type and not api_mode:
                 msg_fetching(target)
-            path = "we_get.modules.%s" % (target)
+            path = "tget.modules.%s" % (target)
             run = None
             try:
                 run = import_module(path)
@@ -218,9 +218,9 @@ class WGSelect(object):
         elif self.results_type == "L":
             [print(self.items[item]["link"]) for item in self.items]
         else:
-            # XXX: import we_get.core.shell is here for optimization.
+            # XXX: import tget.core.shell is here for optimization.
             # tget will load 50% faster!
-            from we_get.core.shell import Shell
+            from tget.core.shell import Shell
 
             self.shell = Shell()
             if hasattr(self, "config") and self.config["item_color"]:
@@ -235,7 +235,7 @@ class WG(object):
         self.arguments = None
         self.parguments = dict()
         # This variable check if the provided arguments has been provided.
-        self.we_get_run = 0
+        self.tget_run = 0
 
     def get_provided_arguments(self):
         """provoded_arguments:
@@ -265,8 +265,8 @@ class WG(object):
             exit(0)
         elif "--list" in self.parguments or "--search" in self.parguments:
             if "--target" in self.parguments:
-                self.we_get_run = 1
-        if self.we_get_run != 1:
+                self.tget_run = 1
+        if self.tget_run != 1:
             format_help(__doc__, "Use --search/--list with --target.")
             exit(1)
 

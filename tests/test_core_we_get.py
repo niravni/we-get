@@ -1,14 +1,14 @@
 import pytest
 from docopt import docopt, DocoptExit
 
-from we_get.core.we_get import WG
-from we_get.core import we_get
+from tget.core.we_get import WG
+import tget.core.we_get as we_get
 
 
 @pytest.mark.parametrize(
     'argv, exp_res',
     [
-        [None, {'arguments': None, 'parguments': {}, 'we_get_run': 0}],
+        [None, {'arguments': None, 'parguments': {}, 'tget_run': 0}],
         [['--search', 'ubuntu'],  {
             'arguments': {
                 '--config': [],
@@ -28,7 +28,7 @@ from we_get.core import we_get
                 '--version': 0
             },
             'parguments': {
-                '--search': ['ubuntu'], '--target': ['all']}, 'we_get_run': 1
+                '--search': ['ubuntu'], '--target': ['all']}, 'tget_run': 1
         }],
     ]
 )

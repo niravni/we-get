@@ -11,7 +11,7 @@ def test_arg_option_doc():
     option_parts = [x.split(' ', 2) for x in option_parts]
     for idx, x in enumerate(option_parts):
         option_parts[idx][2] = x[2].strip()
-    we_get_path = Path(__file__).parent.parent / 'we_get' / 'core' / 'we_get.py'
+    we_get_path = Path(__file__).parent.parent / 'tget' / 'core' / 'we_get.py'
     with we_get_path.open() as f:
         m_content = f.read()
     m_option_parts = m_content.split('Options:')[1].split('Video options')[0].strip().splitlines()

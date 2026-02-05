@@ -3,7 +3,7 @@ Copyright (c) 2016-2020 we-get developers (https://github.com/rachmadaniHaryono/
 See the file 'LICENSE' for copying.
 """
 
-from we_get.core.commands import COMMANDS
+from tget.core.commands import COMMANDS
 from prompt_toolkit.completion import Completer
 from prompt_toolkit.completion import Completion
 

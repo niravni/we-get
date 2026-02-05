@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """ test_module.py - fake we_get shell. """
 
-from we_get.core.shell import Shell
+from tget.core.shell import Shell
 
 items = dict()
 x = {

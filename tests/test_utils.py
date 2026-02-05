@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from we_get.core import utils
+from tget.core import utils
 
 
 def test_msg_item():

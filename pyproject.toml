@@ -12,19 +12,19 @@ name = "cz_conventional_commits"
 version = "1.1.5"
 tag_format = "$version"
 version_files = [
-    "we_get/core/we_get.py",
+    "tget/core/we_get.py",
     "pyproject.toml"
 ]
 
 [tool.poetry]
-name = "we-get"
+name = "tget"
 version = "1.1.5"
 description = "Search torrents from the command-line"
 license = "MIT"
 keywords = ["command", "line", "torrent"]
 homepage = "https://github.com/rachmadaniHaryono/we-get"
 authors = ["Levi Sabah <0xl3vi@gmail.com>"]
-include = ["we_get/txt/useragents.txt"]
+include = ["tget/txt/useragents.txt"]
 
 [tool.poetry.dependencies]
 python = ">=3.6.2"
@@ -40,4 +40,4 @@ pytest-flake8 = "^1.0.7"
 vcrpy = "^4.1.1"
 
 [tool.poetry.scripts]
-tget = 'we_get:main'
+tget = 'tget:main'

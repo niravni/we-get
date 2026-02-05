@@ -4,7 +4,7 @@ See the file 'LICENSE' for copying permission
 """
 
 from urllib.parse import quote_plus
-from we_get.core.module import Module
+from tget.core.module import Module
 import re
 import requests
 import socket
@@ -15,7 +15,7 @@ LIST_LOC = "/top100"
 
 
 class limetorrents(object):
-    """ limetorrents module for we-get
+    """ limetorrents module for tget
     """
 
     def __init__(self, pargs):

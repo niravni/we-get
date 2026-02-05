@@ -3,8 +3,8 @@ Copyright (c) 2016-2020 we-get developers (https://github.com/rachmadaniHaryono/
 See the file 'LICENSE' for copying permission
 """
 
-from we_get.core.we_get import WG
-from we_get.core.utils import msg_error
+from tget.core.we_get import WG
+from tget.core.utils import msg_error
 
 
 def main():

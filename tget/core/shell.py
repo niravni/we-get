@@ -12,10 +12,10 @@ from prompt_toolkit import prompt
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.history import InMemoryHistory
 
-from we_get.core.commands import COMMANDS
-from we_get.core.completer import WGCompleter
-from we_get.core.style import we_get_prompt_style
-from we_get.core.utils import color, msg_error, msg_item, printc, printc_raw
+from tget.core.commands import COMMANDS
+from tget.core.completer import WGCompleter
+from tget.core.style import tget_prompt_style
+from tget.core.utils import color, msg_error, msg_item, printc, printc_raw
 
 PROMPT_TOOLKIT_V2 = prompt_toolkit.__version__.split('.')[0] == '2'
 if PROMPT_TOOLKIT_V2:
@@ -149,7 +149,7 @@ class Shell(object):
                 history=history,
                 auto_suggest=AutoSuggestFromHistory(),
                 completer=WGCompleter(list(self.items.keys())),
-                style=we_get_prompt_style
+                style=tget_prompt_style
             )
             try:
                 p = prompt(u'tget > ', **kwargs)
@@ -157,7 +157,7 @@ class Shell(object):
                 log.debug('{}:{}'.format(type(e), e))
                 kwargs.pop('history')
                 if PROMPT_TOOLKIT_V2:
-                    p = session.prompt(u'we-get > ', **kwargs)
+                    p = session.prompt(u'tget > ', **kwargs)
                 else:
                     p = prompt(u'tget > ', **kwargs)
 
