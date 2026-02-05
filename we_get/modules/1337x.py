@@ -135,14 +135,16 @@ class leetx(object):
         try:
             # Try multiple domains if first one fails
             # 1337x search URLs: try different encodings for spaces
-            # Format 1: + for spaces (quote_plus) - most common
-            # Format 2: %20 for spaces (quote) - alternative
-            # Format 3: - for spaces - some sites prefer this
+            # Lowercase the query first as 1337x typically uses lowercase in URLs
+            search_query_lower = self.search_query.lower()
             search_formats = [
-                quote_plus(self.search_query),  # spaces -> +
-                self.search_query.replace(' ', '+'),  # explicit + replacement
-                self.search_query.replace(' ', '%20'),  # %20 encoding
-                self.search_query.replace(' ', '-'),  # dash replacement (some sites prefer this)
+                quote_plus(search_query_lower),  # spaces -> +, lowercase
+                search_query_lower.replace(' ', '+'),  # explicit + replacement, lowercase
+                search_query_lower.replace(' ', '%20'),  # %20 encoding, lowercase
+                search_query_lower.replace(' ', '-'),  # dash replacement, lowercase
+                # Also try with original case as fallback
+                quote_plus(self.search_query),  # spaces -> +, original case
+                self.search_query.replace(' ', '+'),  # explicit + replacement, original case
             ]
             
             # Remove duplicates while preserving order
@@ -174,10 +176,8 @@ class leetx(object):
                                 print(f"[DEBUG 1337x] Received {len(test_data)} bytes of HTML")
                             if test_data and len(test_data) > 1000:  # Got valid data
                                 # Check if this looks like actual search results, not top torrents
-                                # Search results pages usually contain the search query in the page
-                                # But ignore common stop words that sites often filter out
+                                # Validate by checking if torrent links/titles contain the search query
                                 search_query_lower = self.search_query.lower()
-                                page_lower = test_data.lower()
                                 
                                 # Common stop words that search engines typically ignore
                                 stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'}
@@ -187,11 +187,23 @@ class leetx(object):
                                 if not query_words:
                                     query_words = search_query_lower.split()
                                 
-                                # Check if important words appear in page
-                                matches = sum(1 for word in query_words if word in page_lower)
+                                # Extract torrent links from the page to validate
+                                test_torrent_links = re.findall(r'href=["\']([^"\']*torrent/[^"\']+)["\']', test_data, re.IGNORECASE)
+                                if not test_torrent_links:
+                                    test_torrent_links = re.findall(r'href=["\']([^"\']*torrent/[^"\']+)["\']', test_data, re.IGNORECASE)
                                 
-                                # Require at least one important word to match, or if only stop words, require at least one stop word
-                                if matches > 0 and matches >= max(1, len(query_words) * 0.5):
+                                # Check if any torrent links contain the important search words
+                                matching_links = 0
+                                for link in test_torrent_links[:10]:  # Check first 10 links
+                                    link_lower = link.lower()
+                                    # Check if important words appear in the link/title
+                                    link_matches = sum(1 for word in query_words if word in link_lower)
+                                    if link_matches > 0:
+                                        matching_links += 1
+                                
+                                # Require at least 30% of checked links to contain search terms
+                                # This ensures we have actual search results, not random top torrents
+                                if len(test_torrent_links) > 0 and matching_links >= max(1, len(test_torrent_links[:10]) * 0.3):
                                     data = test_data
                                     # Update BASE_URL for set_item calls
                                     global BASE_URL
@@ -199,10 +211,10 @@ class leetx(object):
                                     working_base_url = base_url
                                     if debug:
                                         print(f"[DEBUG 1337x] Successfully got search results with encoding: '{search_encoded}' and URL format: '{search_loc}'")
-                                        print(f"[DEBUG 1337x] Validation: {matches}/{len(query_words)} important words found in page")
+                                        print(f"[DEBUG 1337x] Validation: {matching_links}/{len(test_torrent_links[:10])} torrent links contain search terms")
                                     break
                                 elif debug:
-                                    print(f"[DEBUG 1337x] Page doesn't seem to contain search results (only {matches}/{len(query_words)} important words found), might be top torrents page")
+                                    print(f"[DEBUG 1337x] Page doesn't seem to contain search results ({matching_links}/{len(test_torrent_links[:10])} links match), might be top torrents or no results page")
                             elif debug:
                                 print(f"[DEBUG 1337x] No valid data from {base_url} with encoding '{search_encoded}', trying next...")
                         except Exception as e:
