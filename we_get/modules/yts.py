@@ -91,27 +91,45 @@ class yts(object):
                     if debug:
                         print(f"[DEBUG YTS] Movie '{movie.get('title', 'Unknown')}' has no torrents")
                     continue
-                # Use the first torrent or find the best one
-                torrent = torrents[0]
-                name = self.module.fix_name(movie.get('title', movie.get('title_english', 'Unknown')))
-                seeds = str(torrent.get('seeds', '0'))
-                leeches = str(torrent.get('peers', '0'))
-                link = torrent.get('url', '')
-                if not link:
-                    # Try hash to build magnet link
-                    hash_val = torrent.get('hash', '')
-                    if hash_val:
-                        link = f"magnet:?xt=urn:btih:{hash_val}&dn={quote_plus(name)}"
+                
+                # Get base movie name
+                base_name = movie.get('title', movie.get('title_english', 'Unknown'))
+                year = movie.get('year', '')
+                if year:
+                    base_name = f"{base_name} ({year})"
+                
+                # Return ALL torrents for each movie (not just the first one)
+                # This gives us multiple results per movie (720p, 1080p, 3D, etc.)
+                for torrent in torrents:
+                    if not torrent:
+                        continue
+                    quality = torrent.get('quality', '')
+                    seeds = str(torrent.get('seeds', '0'))
+                    leeches = str(torrent.get('peers', '0'))
+                    link = torrent.get('url', '')
+                    
+                    # Build name with quality
+                    if quality:
+                        name = self.module.fix_name(f"{base_name} [{quality}]")
+                    else:
+                        name = self.module.fix_name(base_name)
+                    
+                    if not link:
+                        # Try hash to build magnet link
+                        hash_val = torrent.get('hash', '')
+                        if hash_val:
+                            link = f"magnet:?xt=urn:btih:{hash_val}&dn={quote_plus(name)}"
+                            if debug:
+                                print(f"[DEBUG YTS] Built magnet link from hash for: {name}")
+                    
+                    if link:
                         if debug:
-                            print(f"[DEBUG YTS] Built magnet link from hash for: {name}")
-                if link:
-                    if debug:
-                        print(f"[DEBUG YTS] Added movie: {name} (seeds: {seeds}, leeches: {leeches})")
-                    self.items.update({
-                        name: {'seeds': seeds, 'leeches': leeches, 'link': link}
-                    })
-                elif debug:
-                    print(f"[DEBUG YTS] No link found for movie: {name}")
+                            print(f"[DEBUG YTS] Added torrent: {name} (seeds: {seeds}, leeches: {leeches})")
+                        self.items.update({
+                            name: {'seeds': seeds, 'leeches': leeches, 'link': link}
+                        })
+                    elif debug:
+                        print(f"[DEBUG YTS] No link found for torrent: {name}")
         except (json.decoder.JSONDecodeError, KeyError, IndexError, TypeError):
             return self.items
         except (requests.exceptions.ConnectionError,
@@ -151,20 +169,36 @@ class yts(object):
                 torrents = movie.get('torrents', [])
                 if not torrents or len(torrents) == 0:
                     continue
-                # Use the first torrent or find the best one
-                torrent = torrents[0]
-                torrent_name = self.module.fix_name(movie.get('title', movie.get('title_english', 'Unknown')))
-                seeds = str(torrent.get('seeds', '0'))
-                leeches = str(torrent.get('peers', '0'))
-                link = torrent.get('url', '')
-                if not link:
-                    # Try hash to build magnet link
-                    hash_val = torrent.get('hash', '')
-                    if hash_val:
-                        link = f"magnet:?xt=urn:btih:{hash_val}&dn={quote_plus(torrent_name)}"
-                if link:
-                    self.items.update({torrent_name: {'leeches': leeches,
-                                                      'seeds': seeds, 'link': link}})
+                
+                # Get base movie name
+                base_name = movie.get('title', movie.get('title_english', 'Unknown'))
+                year = movie.get('year', '')
+                if year:
+                    base_name = f"{base_name} ({year})"
+                
+                # Return ALL torrents for each movie (not just the first one)
+                for torrent in torrents:
+                    if not torrent:
+                        continue
+                    quality = torrent.get('quality', '')
+                    seeds = str(torrent.get('seeds', '0'))
+                    leeches = str(torrent.get('peers', '0'))
+                    link = torrent.get('url', '')
+                    
+                    # Build name with quality
+                    if quality:
+                        torrent_name = self.module.fix_name(f"{base_name} [{quality}]")
+                    else:
+                        torrent_name = self.module.fix_name(base_name)
+                    
+                    if not link:
+                        # Try hash to build magnet link
+                        hash_val = torrent.get('hash', '')
+                        if hash_val:
+                            link = f"magnet:?xt=urn:btih:{hash_val}&dn={quote_plus(torrent_name)}"
+                    if link:
+                        self.items.update({torrent_name: {'leeches': leeches,
+                                                          'seeds': seeds, 'link': link}})
         except (json.decoder.JSONDecodeError, KeyError, IndexError, TypeError):
             return self.items
         except (requests.exceptions.ConnectionError,
