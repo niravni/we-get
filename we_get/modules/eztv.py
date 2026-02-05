@@ -68,6 +68,25 @@ class eztv(object):
             if magnet_links and len(magnet_links) > 0:
                 print(f"[DEBUG EZTV] Sample magnet link (first 100 chars): {magnet_links[0][:100]}")
         
+        # Also search for episode/show links that might lead to magnet links
+        # Look for links that might be episode pages
+        episode_links = re.findall(r'href=["\']([^"\']*ep/[^"\']+)["\']', data, re.IGNORECASE)
+        if not episode_links:
+            episode_links = re.findall(r'href=["\']([^"\']*episode[^"\']+)["\']', data, re.IGNORECASE)
+        if not episode_links:
+            # Look for any links that might be show pages
+            episode_links = re.findall(r'href=["\']([^"\']*shows/[^"\']+)["\']', data, re.IGNORECASE)
+        
+        if debug:
+            print(f"[DEBUG EZTV] Found {len(episode_links)} potential episode/show links")
+            if episode_links and len(episode_links) > 0:
+                print(f"[DEBUG EZTV] Sample episode link: {episode_links[0][:100]}")
+        
+        # Look for download links or .torrent files
+        download_links = re.findall(r'href=["\']([^"\']*\.torrent)["\']', data, re.IGNORECASE)
+        if debug:
+            print(f"[DEBUG EZTV] Found {len(download_links)} .torrent file links")
+        
         # Clean up data for table row parsing
         data_cleaned = data.replace('\t', '').replace('\n', '')
         
@@ -102,7 +121,17 @@ class eztv(object):
             if debug:
                 print(f"[DEBUG EZTV] Pattern 3 found {len(items)} items")
         
-        # Pattern 4: Look for any table rows
+        # Pattern 4: Look for table rows with episode/show links
+        if not items:
+            items = re.findall(
+                r'<tr[^>]*>(.*?ep/.*?)</tr>',
+                data_cleaned,
+                re.IGNORECASE | re.DOTALL
+            )
+            if debug:
+                print(f"[DEBUG EZTV] Pattern 4a (rows with ep/) found {len(items)} items")
+        
+        # Pattern 4b: Look for any table rows
         if not items:
             items = re.findall(
                 r'<tr[^>]*>(.*?)</tr>',
@@ -110,7 +139,28 @@ class eztv(object):
                 re.IGNORECASE | re.DOTALL
             )
             if debug:
-                print(f"[DEBUG EZTV] Pattern 4 (any table row) found {len(items)} items")
+                print(f"[DEBUG EZTV] Pattern 4b (any table row) found {len(items)} items")
+                # Filter out non-torrent rows (like search forms)
+                filtered_items = []
+                for item in items:
+                    # Skip if it's clearly not a torrent row
+                    if 'search' in item.lower() and 'form' in item.lower():
+                        continue
+                    if 'ep/' in item.lower() or 'episode' in item.lower() or 'download' in item.lower():
+                        filtered_items.append(item)
+                if filtered_items:
+                    items = filtered_items
+                    if debug:
+                        print(f"[DEBUG EZTV] Filtered to {len(items)} potential torrent rows")
+        
+        # If we found episode links but no magnet links, try to fetch them
+        if episode_links and not magnet_links and not items:
+            if debug:
+                print(f"[DEBUG EZTV] No magnet links found, but found {len(episode_links)} episode links")
+                print(f"[DEBUG EZTV] EZTV may require visiting individual episode pages to get magnet links")
+                print(f"[DEBUG EZTV] This would require multiple HTTP requests per search")
+            # For now, we'll try to use episode links as items and fetch them
+            # But this is complex, so let's first see if we can find the structure
         
         # If we found magnet links but no items from table rows, use magnet links directly
         if magnet_links and not items:
@@ -123,6 +173,42 @@ class eztv(object):
             items.extend([f"magnet_link:{link}" for link in magnet_links[:50]])
             if debug:
                 print(f"[DEBUG EZTV] Added {len(magnet_links)} direct magnet links to items")
+        
+        # If we have episode links but no items, try to use them
+        if episode_links and not items and not magnet_links:
+            if debug:
+                print(f"[DEBUG EZTV] Attempting to use episode links - will need to fetch each page")
+            # Limit to first 10 episode links to avoid too many requests
+            for ep_link in episode_links[:10]:
+                try:
+                    # Make link absolute if needed
+                    if ep_link.startswith('/'):
+                        full_url = BASE_URL + ep_link
+                    elif ep_link.startswith('http'):
+                        full_url = ep_link
+                    else:
+                        full_url = BASE_URL + '/' + ep_link
+                    
+                    if debug:
+                        print(f"[DEBUG EZTV] Fetching episode page: {full_url}")
+                    
+                    ep_data = self.module.http_get_request(full_url, timeout=10, debug=debug)
+                    if ep_data:
+                        # Look for magnet link in episode page
+                        ep_magnets = re.findall(r'magnet:\?[^\'"\s<>"]+', ep_data, re.IGNORECASE)
+                        if ep_magnets:
+                            magnet_links.append(ep_magnets[0])
+                            if debug:
+                                print(f"[DEBUG EZTV] Found magnet link on episode page")
+                except Exception as e:
+                    if debug:
+                        print(f"[DEBUG EZTV] Error fetching episode page: {e}")
+                    continue
+            
+            if magnet_links:
+                items = [f"magnet_link:{link}" for link in magnet_links[:50]]
+                if debug:
+                    print(f"[DEBUG EZTV] Created {len(items)} items from episode pages")
         
         if debug:
             print(f"[DEBUG EZTV] Total items to process: {len(items)}")
