@@ -1,5 +1,5 @@
-we-get: command-line tool for searching torrents.
-#################################################
+tget: command-line tool for searching torrents.
+###############################################
 
 .. image:: https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square
     :target: https://github.com/rachmadaniHaryono/we-get/blob/master/LICENSE
@@ -32,9 +32,11 @@ run from the root folder
     $ pip3 install --user build
     $ # build from sources
     $ python3 -m build .
-    $ pip3 install --user dist/we-get.tar.gz
+    $ pip3 install --user dist/tget-*.whl
+    $ # or
+    $ pip3 install --user dist/tget-*.tar.gz
     $ # run
-    $ we-get
+    $ tget
 
 or with ``pip``
 
@@ -64,7 +66,7 @@ Basic Usage
 
 .. code-block:: bash
 
-    $ we-get --search "royal pains" --target  the_pirate_bay,1337x --filter "S01"
+    $ tget --search "royal pains" --target  the_pirate_bay,1337x --filter "S01"
 
 General options
 ---------------
@@ -100,17 +102,17 @@ Video options
 ================ ==================================================================
 
 
-See also ``we-get --help``.
+See also ``tget --help``.
 
 Python Module
 -------------
 
 .. code-block:: python
 
-   >>> from we_get.core.we_get import WG
-   >>> we_get = WG()
-   >>> we_get.parse_arguments(['--search', 'ubuntu', '--target', 'all'])
-   >>> res = we_get.start(api_mode=True)
+   >>> from tget.core.we_get import WG
+   >>> tget = WG()
+   >>> tget.parse_arguments(['--search', 'ubuntu', '--target', 'all'])
+   >>> res = tget.start(api_mode=True)
    OrderedDict([
       (
          'Ubuntu.MATE.16.04.2.[MATE][armhf][img.xz][Uzerus]', {
@@ -133,11 +135,11 @@ Older version can use `sys.argv` to input the arguments
 .. code-block:: python
 
    >>> import sys
-   >>> from we_get.core.we_get import WG
-   >>> we_get = WG()
+   >>> from tget.core.we_get import WG
+   >>> tget = WG()
    >>> sys.argv[1:] = ['--search', 'ubuntu', '--target', 'all']
-   >>> we_get.parse_arguments()
-   >>> we_get.start(api_mode=True)
+   >>> tget.parse_arguments()
+   >>> tget.start(api_mode=True)
    ...
 
 
@@ -146,10 +148,8 @@ Supported websites
 
 * 1337x
 * thepiratebay
-* eztv
 * yts
 * limetorrents
-* il corsaro nero
 
 and the list will grow.
 
