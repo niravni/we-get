@@ -40,4 +40,4 @@ pytest-flake8 = "^1.0.7"
 vcrpy = "^4.1.1"
 
 [tool.poetry.scripts]
-we-get = 'we_get:main'
+tget = 'we_get:main'
