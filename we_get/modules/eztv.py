@@ -277,14 +277,69 @@ class eztv(object):
                         print(f"[DEBUG EZTV] Failed to parse magnet link: {e}")
                 continue
             
-            # Extract magnet links from select options in this item
+            # Extract magnet links from select options and JavaScript in this item
             if debug:
-                print(f"[DEBUG EZTV] Processing item {items_with_magnet+1}, checking for select options...")
+                print(f"[DEBUG EZTV] Processing item {items_with_magnet+1}, checking for select options and JavaScript...")
+            
+            # First, try to extract magnet links from JavaScript onchange handlers
+            onchange_magnets = re.findall(r'onchange=["\']([^"\']*magnet:[^"\']+)["\']', item, re.IGNORECASE | re.DOTALL)
+            if not onchange_magnets:
+                # Try to find magnet links in any JavaScript in the item
+                onchange_magnets = re.findall(r'(magnet:\?[^\'"\s<>"]+)', item, re.IGNORECASE)
+            
+            if onchange_magnets:
+                if debug:
+                    print(f"[DEBUG EZTV] Found {len(onchange_magnets)} magnet links in JavaScript/onchange")
+                for magnet in onchange_magnets:
+                    items_with_magnet += 1
+                    if debug:
+                        print(f"[DEBUG EZTV] Found magnet in JavaScript: {magnet[:80]}...")
+                    try:
+                        name = self.module.fix_name(self.module.magnet2name(magnet))
+                        self.items.update({
+                            name: {'seeds': '0', 'leeches': '?', 'link': magnet}
+                        })
+                        if debug:
+                            print(f"[DEBUG EZTV] Added item from JavaScript: {name[:50]}...")
+                    except Exception as e:
+                        if debug:
+                            print(f"[DEBUG EZTV] Failed to parse magnet from JavaScript: {e}")
+                continue  # Skip to next item if we found magnets in JS
+            
+            # Also check select options
             select_options_in_item = re.findall(r'<option[^>]*value=["\']([^"\']+)["\']', item, re.IGNORECASE)
             if debug:
                 print(f"[DEBUG EZTV] Found {len(select_options_in_item)} select options in item")
                 if select_options_in_item and len(select_options_in_item) > 0:
                     print(f"[DEBUG EZTV] First option value (first 150 chars): {select_options_in_item[0][:150]}")
+            
+            # Also get the full select element to see the onchange handler
+            select_elements = re.findall(r'<select[^>]*>(.*?)</select>', item, re.IGNORECASE | re.DOTALL)
+            if select_elements and debug:
+                print(f"[DEBUG EZTV] Found {len(select_elements)} select elements")
+                # Try to extract onchange handler
+                onchange_handlers = re.findall(r'onchange=["\']([^"\']+)["\']', item, re.IGNORECASE)
+                if onchange_handlers:
+                    print(f"[DEBUG EZTV] onchange handler (first 200 chars): {onchange_handlers[0][:200]}")
+                    # Try to extract magnet links from onchange handler
+                    handler_magnets = re.findall(r'(magnet:\?[^\'"\s<>"]+)', onchange_handlers[0], re.IGNORECASE)
+                    if handler_magnets:
+                        if debug:
+                            print(f"[DEBUG EZTV] Found {len(handler_magnets)} magnet links in onchange handler")
+                        for magnet in handler_magnets:
+                            items_with_magnet += 1
+                            try:
+                                name = self.module.fix_name(self.module.magnet2name(magnet))
+                                self.items.update({
+                                    name: {'seeds': '0', 'leeches': '?', 'link': magnet}
+                                })
+                                if debug:
+                                    print(f"[DEBUG EZTV] Added item from onchange handler: {name[:50]}...")
+                            except Exception as e:
+                                if debug:
+                                    print(f"[DEBUG EZTV] Failed to parse magnet from onchange: {e}")
+                        continue  # Skip to next item
+            
             for opt_val in select_options_in_item:
                 if 'magnet:' in opt_val.lower():
                     # Found magnet link in select option
