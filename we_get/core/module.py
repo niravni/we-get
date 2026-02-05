@@ -11,7 +11,16 @@ import requests
 
 from we_get.core.utils import random_user_agent
 
-USER_AGENT = random_user_agent()
+# Fallback modern user agent if random one is too old
+MODERN_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+try:
+    USER_AGENT = random_user_agent()
+    # If user agent is too old (contains Firefox/1 or Firefox/2), use modern one
+    if "Firefox/1" in USER_AGENT or "Firefox/2" in USER_AGENT:
+        USER_AGENT = MODERN_USER_AGENT
+except:
+    USER_AGENT = MODERN_USER_AGENT
 
 
 class Module(object):
@@ -24,9 +33,31 @@ class Module(object):
         @timeout: Request timeout in seconds (default: 10)
         @return: data.
         """
-        headers = [("User-Agent", USER_AGENT), ("Accept", "*/*")]
+        # Use more realistic browser headers to avoid blocking
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Cache-Control": "max-age=0"
+        }
         try:
-            res = requests.get(url, headers=dict(headers), timeout=timeout)
+            res = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+            # Check if we got blocked or got an error page
+            if res.status_code != 200:
+                return ""
+            # Check if response is too short (likely an error page or block)
+            if len(res.text) < 100:
+                return ""
+            # Check for common blocking/error indicators
+            text_lower = res.text.lower()
+            if any(indicator in text_lower for indicator in ['access denied', 'blocked', 'cloudflare', 'captcha', 'forbidden']):
+                return ""
             return res.text
         except requests.exceptions.Timeout:
             print("Error: Timeout when opening following url: {}".format(url))
