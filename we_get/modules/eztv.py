@@ -78,9 +78,11 @@ class eztv(object):
             episode_links = re.findall(r'href=["\']([^"\']*shows/[^"\']+)["\']', data, re.IGNORECASE)
         
         # Also look for any internal links that might be show pages (not search, static, css, js)
+        # But be more specific - look for /shows/ or numeric IDs that might be show pages
         if not episode_links:
             all_hrefs = re.findall(r'href=["\']([^"\']+)["\']', data, re.IGNORECASE)
             # Filter for internal links that look like show pages
+            # Must contain /shows/ or be a numeric ID path like /123/ or /12345/
             episode_links = [link for link in all_hrefs 
                            if link.startswith('/') and 
                            not link.startswith('/search') and 
@@ -88,9 +90,19 @@ class eztv(object):
                            not link.startswith('/css') and
                            not link.startswith('/js') and
                            not link.startswith('/images') and
+                           not link.startswith('/styles') and
+                           not link.startswith('/countdown') and
+                           not link.startswith('/calendar') and
+                           not link.startswith('/forum') and
+                           not link.startswith('/faq') and
+                           not link.startswith('/login') and
+                           not link.startswith('/api') and
+                           not link.startswith('/cdn-cgi') and
                            not link.startswith('#') and
                            len(link) > 3 and
-                           link.count('/') >= 2]  # Has at least 2 slashes (like /shows/123/)
+                           ('/shows/' in link.lower() or 
+                            re.match(r'^/\d+/', link) or  # Starts with /123/
+                            re.match(r'^/[^/]+/\d+', link))]  # Has numeric ID like /show/123
         
         if debug:
             print(f"[DEBUG EZTV] Found {len(episode_links)} potential episode/show links in entire HTML")
@@ -208,6 +220,20 @@ class eztv(object):
                     items = filtered_items
                     if debug:
                         print(f"[DEBUG EZTV] Filtered to {len(items)} potential torrent rows")
+                    # Extract links from these filtered items that might be show pages
+                    for item in filtered_items:
+                        item_links = re.findall(r'href=["\']([^"\']+)["\']', item, re.IGNORECASE)
+                        for link in item_links:
+                            # Look for show page links in the table rows
+                            if (link.startswith('/') and 
+                                not link.startswith('/search') and
+                                ('/shows/' in link.lower() or 
+                                 re.match(r'^/\d+/', link) or
+                                 re.match(r'^/[^/]+/\d+', link))):
+                                if link not in episode_links:
+                                    episode_links.append(link)
+                                    if debug:
+                                        print(f"[DEBUG EZTV] Found show page link in table row: {link}")
         
         # If we found episode links but no magnet links, try to fetch them
         # Also try if we have items but they don't contain magnet links
