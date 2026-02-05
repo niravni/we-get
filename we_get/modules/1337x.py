@@ -9,7 +9,13 @@ import re
 import requests
 import socket
 
-BASE_URL = "https://1337x.to"
+# Try alternative domains - some might not have Cloudflare or have weaker protection
+BASE_URLS = [
+    "https://1337x.to",
+    "https://1337x.st", 
+    "https://www.1377x.to"
+]
+BASE_URL = BASE_URLS[0]  # Default to first one
 SEARCH_LOC = "/search/%s/1/"
 LIST_LOC = "/top-100"
 
@@ -116,18 +122,33 @@ class leetx(object):
     def search(self):
         import os
         debug = os.environ.get('TGET_DEBUG', '').lower() in ('1', 'true', 'yes')
-        url = "%s%s" % (BASE_URL, SEARCH_LOC % (quote_plus(self.search_query)))
-        if debug:
-            print(f"[DEBUG 1337x] Search URL: {url}")
-        try:
-            # Use cloudscraper for 1337x to bypass Cloudflare protection
-            data = self.module.http_get_request(url, debug=debug, use_cloudscraper=True)
+        
+        # Try multiple domains if first one fails
+        for base_url in BASE_URLS:
+            url = "%s%s" % (base_url, SEARCH_LOC % (quote_plus(self.search_query)))
             if debug:
-                print(f"[DEBUG 1337x] Received {len(data)} bytes of HTML")
-            if not data:
+                print(f"[DEBUG 1337x] Trying URL: {url}")
+            try:
+                # Use cloudscraper for 1337x to bypass Cloudflare protection
+                data = self.module.http_get_request(url, debug=debug, use_cloudscraper=True)
                 if debug:
-                    print("[DEBUG 1337x] No data received, returning empty results")
-                return self.items
+                    print(f"[DEBUG 1337x] Received {len(data)} bytes of HTML")
+                if data and len(data) > 1000:  # Got valid data
+                    # Update BASE_URL for set_item calls
+                    global BASE_URL
+                    BASE_URL = base_url
+                    break
+                elif debug:
+                    print(f"[DEBUG 1337x] No valid data from {base_url}, trying next domain...")
+            except Exception as e:
+                if debug:
+                    print(f"[DEBUG 1337x] Error with {base_url}: {e}")
+                continue
+        
+        if not data or len(data) < 1000:
+            if debug:
+                print("[DEBUG 1337x] No data received from any domain, returning empty results")
+            return self.items
             # Try multiple patterns for finding torrent links
             # Pattern 1: Look for links in table rows (common 1337x structure)
             torrent_links = re.findall(r'<a[^>]+href=["\']([^"\']*torrent/[^"\']+)["\']', data, re.IGNORECASE)

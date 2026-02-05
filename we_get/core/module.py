@@ -52,11 +52,28 @@ class Module(object):
         if use_cloudscraper and HAS_CLOUDSCRAPER:
             if debug:
                 print(f"[DEBUG] Using cloudscraper to bypass Cloudflare")
-            scraper = cloudscraper.create_scraper()
+            # Try different cloudscraper configurations
             try:
+                # First try: default cloudscraper
+                scraper = cloudscraper.create_scraper()
                 if debug:
                     print(f"[DEBUG] Requesting URL: {url}")
                 res = scraper.get(url, timeout=timeout, allow_redirects=True)
+                # If we got a challenge page, try with browser-like settings
+                if res.status_code == 403 and 'just a moment' in res.text.lower():
+                    if debug:
+                        print(f"[DEBUG] Got Cloudflare challenge, trying with browser emulation")
+                    import time
+                    time.sleep(2)  # Small delay
+                    # Try with a browser-like scraper
+                    scraper = cloudscraper.create_scraper(
+                        browser={
+                            'browser': 'chrome',
+                            'platform': 'windows',
+                            'desktop': True
+                        }
+                    )
+                    res = scraper.get(url, timeout=timeout + 5, allow_redirects=True)
             except Exception as err:
                 if debug:
                     print(f"[DEBUG] cloudscraper failed, falling back to requests: {err}")
@@ -97,8 +114,11 @@ class Module(object):
                     print(f"[DEBUG] 403 Forbidden - Site is blocking the request")
                     # Check if it's a Cloudflare challenge
                     response_lower = res.text.lower() if res.text else ""
-                    if 'cloudflare' in response_lower or 'cf-ray' in res.headers or 'challenge' in response_lower:
-                        print(f"[DEBUG] Cloudflare protection detected - requires JavaScript execution")
+                    if 'just a moment' in response_lower or 'checking your browser' in response_lower:
+                        print(f"[DEBUG] Cloudflare JavaScript challenge detected - cloudscraper cannot bypass this level of protection")
+                        print(f"[DEBUG] This site requires a real browser with JavaScript execution")
+                    elif 'cloudflare' in response_lower or 'cf-ray' in res.headers or 'challenge' in response_lower:
+                        print(f"[DEBUG] Cloudflare protection detected")
                     # Show first 500 chars of decoded text
                     try:
                         if res.text and len(res.text) > 0:
@@ -110,6 +130,13 @@ class Module(object):
                     except Exception as e:
                         print(f"[DEBUG] Error reading response: {e}")
                 return ""
+            # Also check for challenge pages even with 200 status
+            elif res.status_code == 200:
+                response_lower = res.text.lower() if res.text else ""
+                if 'just a moment' in response_lower or 'checking your browser' in response_lower:
+                    if debug:
+                        print(f"[DEBUG] Got 200 but response is a Cloudflare challenge page")
+                    return ""
             elif res.status_code != 200:
                 if debug:
                     print(f"[DEBUG] Non-200 status code: {res.status_code}")
