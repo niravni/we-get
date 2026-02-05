@@ -146,14 +146,37 @@ class Module(object):
                 if debug:
                     print(f"[DEBUG] Response too short ({len(res.text)} bytes), likely error page")
                 return ""
-            # Check for common blocking/error indicators
+            
+            # Check for actual blocking/error pages (not just presence of words)
+            # Only check if we got a 200 status and reasonable content length
             text_lower = res.text.lower()
-            blocking_indicators = ['access denied', 'blocked', 'cloudflare', 'captcha', 'forbidden']
-            found_indicators = [ind for ind in blocking_indicators if ind in text_lower]
-            if found_indicators:
-                if debug:
-                    print(f"[DEBUG] Blocking indicators found: {found_indicators}")
-                return ""
+            
+            # For 200 status codes with good content length, be more lenient
+            # Only reject if we see clear blocking page patterns
+            if res.status_code == 200 and len(res.text) > 1000:
+                # Check for actual blocking page patterns, not just word presence
+                blocking_patterns = [
+                    'just a moment',  # Cloudflare challenge
+                    'checking your browser',  # Cloudflare challenge
+                    'please wait',  # Generic wait page
+                    'access denied',  # Only if it's a clear error message
+                    'you have been blocked',  # Clear blocking message
+                    'captcha verification',  # Captcha page
+                    '403 forbidden',  # Clear forbidden message
+                ]
+                found_patterns = [pattern for pattern in blocking_patterns if pattern in text_lower]
+                if found_patterns:
+                    if debug:
+                        print(f"[DEBUG] Blocking page patterns detected: {found_patterns}")
+                    return ""
+            else:
+                # For non-200 or short responses, check for any blocking indicators
+                blocking_indicators = ['access denied', 'blocked', 'forbidden']
+                found_indicators = [ind for ind in blocking_indicators if ind in text_lower]
+                if found_indicators:
+                    if debug:
+                        print(f"[DEBUG] Blocking indicators found: {found_indicators}")
+                    return ""
             if debug:
                 print(f"[DEBUG] Successfully received {len(res.text)} bytes of data")
             return res.text

@@ -8,7 +8,7 @@ import re
 import requests
 import socket
 
-BASE_URL = "https://eztvx.to"
+BASE_URL = "https://eztv.re"
 SEARCH_LOC = "/search/%s/"
 LIST_LOC = "/"
 
