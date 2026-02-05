@@ -7,7 +7,7 @@ from urllib.parse import quote_plus
 from we_get.core.module import Module
 import re
 
-BASE_URL = "http://1337x.to"
+BASE_URL = "https://1337x.st"
 SEARCH_LOC = "/search/%s/1/"
 LIST_LOC = "/top-100"
 
@@ -39,8 +39,33 @@ class leetx(object):
         magnet = None
         data = self.module.http_get_request(url)
         links = re.findall(r'href=[\'"]?([^\'">]+)', data)
-        seeders = re.findall(r'<span class=\"seeds\">(.*?)</span>', data)[0]
-        leechers = re.findall(r'<span class=\"leeches\">(.*?)</span>', data)[0]
+        # Try multiple patterns for seeders/leechers as site structure may vary
+        seeders = '0'
+        leechers = '0'
+        try:
+            seeders_match = re.findall(r'<span class=\"seeds\">(.*?)</span>', data)
+            if seeders_match:
+                seeders = seeders_match[0]
+            else:
+                # Alternative pattern
+                seeders_match = re.findall(r'<span class=\"seeds\">(.*?)</span>', data, re.IGNORECASE)
+                if seeders_match:
+                    seeders = seeders_match[0]
+        except (IndexError, AttributeError):
+            pass
+        
+        try:
+            leechers_match = re.findall(r'<span class=\"leeches\">(.*?)</span>', data)
+            if leechers_match:
+                leechers = leechers_match[0]
+            else:
+                # Alternative pattern
+                leechers_match = re.findall(r'<span class=\"leeches\">(.*?)</span>', data, re.IGNORECASE)
+                if leechers_match:
+                    leechers = leechers_match[0]
+        except (IndexError, AttributeError):
+            pass
+        
         item = dict()
         name = None
 
@@ -48,40 +73,55 @@ class leetx(object):
             if "magnet" in link:
                 magnet = link
                 break
-        name = self.module.fix_name(self.module.magnet2name(magnet))
-        item.update(
-            {name: {'seeds': seeders, 'leeches': leechers, 'link': magnet}}
-        )
+        
+        if not magnet:
+            return item
+            
+        try:
+            name = self.module.fix_name(self.module.magnet2name(magnet))
+            item.update(
+                {name: {'seeds': seeders, 'leeches': leechers, 'link': magnet}}
+            )
+        except (IndexError, AttributeError):
+            pass
         return item
 
     def search(self):
         url = "%s%s" % (BASE_URL, SEARCH_LOC % (quote_plus(self.search_query)))
-        data = self.module.http_get_request(url)
-        links = re.findall(r'href=[\'"]?([^\'">]+)', data)
-        results = 0
+        try:
+            data = self.module.http_get_request(url)
+            links = re.findall(r'href=[\'"]?([^\'">]+)', data)
+            results = 0
 
-        for link in links:
-            if "/torrent/" in link:
-                if results == self.results:
-                    break
-                item = self.set_item(link)
-                self.items.update(item)
-                results += 1
+            for link in links:
+                if "/torrent/" in link:
+                    if results == self.results:
+                        break
+                    item = self.set_item(link)
+                    if item:
+                        self.items.update(item)
+                        results += 1
+        except Exception:
+            pass
         return self.items
 
     def list(self):
         url = "%s%s" % (BASE_URL, LIST_LOC)
-        data = self.module.http_get_request(url)
-        links = re.findall(r'href=[\'"]?([^\'">]+)', data)
-        results = 0
+        try:
+            data = self.module.http_get_request(url)
+            links = re.findall(r'href=[\'"]?([^\'">]+)', data)
+            results = 0
 
-        for link in links:
-            if "/torrent/" in link:
-                if results == self.results:
-                    break
-                item = self.set_item(link)
-                self.items.update(item)
-                results += 1
+            for link in links:
+                if "/torrent/" in link:
+                    if results == self.results:
+                        break
+                    item = self.set_item(link)
+                    if item:
+                        self.items.update(item)
+                        results += 1
+        except Exception:
+            pass
         return self.items
 
 

@@ -6,7 +6,7 @@ See the file 'LICENSE' for copying permission
 from we_get.core.module import Module
 import re
 
-BASE_URL = "http://eztv.ag"
+BASE_URL = "https://eztv.io"
 SEARCH_LOC = "/search/%s/"
 LIST_LOC = "/"
 
@@ -63,14 +63,20 @@ class eztv(object):
 
     def search(self):
         url = "%s%s" % (BASE_URL, SEARCH_LOC % (self.search_query))
-        data = self.module.http_get_request(url)
-        self._parse_data(data)
+        try:
+            data = self.module.http_get_request(url)
+            self._parse_data(data)
+        except Exception:
+            pass
         return self.items
 
     def list(self):
         url = "%s%s" % (BASE_URL, LIST_LOC)
-        data = self.module.http_get_request(url)
-        self._parse_data(data)
+        try:
+            data = self.module.http_get_request(url)
+            self._parse_data(data)
+        except Exception:
+            pass
         return self.items
 
 
