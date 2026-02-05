@@ -87,6 +87,47 @@ class eztv(object):
         if debug:
             print(f"[DEBUG EZTV] Found {len(download_links)} .torrent file links")
         
+        # Look for magnet links in select option values (EZTV uses dropdowns)
+        select_options = re.findall(r'<option[^>]*value=["\']([^"\']+)["\']', data, re.IGNORECASE)
+        for opt_val in select_options:
+            if 'magnet:' in opt_val.lower():
+                magnet_links.append(opt_val)
+                if debug:
+                    print(f"[DEBUG EZTV] Found magnet link in select option")
+        
+        # Look for magnet links in JavaScript variables
+        js_magnets = re.findall(r'["\'](magnet:\?[^"\']+)["\']', data, re.IGNORECASE)
+        if js_magnets:
+            magnet_links.extend(js_magnets)
+            if debug:
+                print(f"[DEBUG EZTV] Found {len(js_magnets)} magnet links in JavaScript")
+        
+        # Look for magnet links in data attributes
+        data_attr_magnets = re.findall(r'data-[^=]*=["\'](magnet:\?[^"\']+)["\']', data, re.IGNORECASE)
+        if data_attr_magnets:
+            magnet_links.extend(data_attr_magnets)
+            if debug:
+                print(f"[DEBUG EZTV] Found {len(data_attr_magnets)} magnet links in data attributes")
+        
+        # Look for magnet links in onclick or other event handlers
+        onclick_magnets = re.findall(r'onclick=["\'][^"\']*(magnet:\?[^"\']+)', data, re.IGNORECASE)
+        if onclick_magnets:
+            magnet_links.extend(onclick_magnets)
+            if debug:
+                print(f"[DEBUG EZTV] Found {len(onclick_magnets)} magnet links in onclick handlers")
+        
+        # Remove duplicates again after adding new sources
+        seen = set()
+        unique_magnet_links = []
+        for link in magnet_links:
+            if link not in seen:
+                seen.add(link)
+                unique_magnet_links.append(link)
+        magnet_links = unique_magnet_links
+        
+        if debug:
+            print(f"[DEBUG EZTV] Total unique magnet links found: {len(magnet_links)}")
+        
         # Clean up data for table row parsing
         data_cleaned = data.replace('\t', '').replace('\n', '')
         
@@ -235,6 +276,74 @@ class eztv(object):
                     if debug:
                         print(f"[DEBUG EZTV] Failed to parse magnet link: {e}")
                 continue
+            
+            # Extract magnet links from select options in this item
+            select_options_in_item = re.findall(r'<option[^>]*value=["\']([^"\']+)["\']', item, re.IGNORECASE)
+            for opt_val in select_options_in_item:
+                if 'magnet:' in opt_val.lower():
+                    # Found magnet link in select option
+                    magnet = opt_val
+                    items_with_magnet += 1
+                    if debug:
+                        print(f"[DEBUG EZTV] Found magnet in select option: {magnet[:80]}...")
+                    try:
+                        name = self.module.fix_name(self.module.magnet2name(magnet))
+                        self.items.update({
+                            name: {'seeds': '0', 'leeches': '?', 'link': magnet}
+                        })
+                        if debug:
+                            print(f"[DEBUG EZTV] Added item from select option: {name[:50]}...")
+                    except Exception as e:
+                        if debug:
+                            print(f"[DEBUG EZTV] Failed to parse magnet from select: {e}")
+                    continue  # Skip to next item
+            
+            # Look for episode/show links in this item
+            ep_links_in_item = re.findall(r'href=["\']([^"\']*(?:ep/|episode|shows/)[^"\']+)["\']', item, re.IGNORECASE)
+            if ep_links_in_item:
+                # Try to fetch episode page to get magnet link
+                for ep_link in ep_links_in_item[:1]:  # Just try first one
+                    try:
+                        if ep_link.startswith('/'):
+                            full_url = BASE_URL + ep_link
+                        elif ep_link.startswith('http'):
+                            full_url = ep_link
+                        else:
+                            full_url = BASE_URL + '/' + ep_link
+                        
+                        if debug:
+                            print(f"[DEBUG EZTV] Fetching episode page from item: {full_url}")
+                        
+                        ep_data = self.module.http_get_request(full_url, timeout=10, debug=debug)
+                        if ep_data:
+                            # Look for magnet link in episode page
+                            ep_magnets = re.findall(r'magnet:\?[^\'"\s<>"]+', ep_data, re.IGNORECASE)
+                            if not ep_magnets:
+                                # Try select options
+                                ep_select_opts = re.findall(r'<option[^>]*value=["\']([^"\']+)["\']', ep_data, re.IGNORECASE)
+                                for opt in ep_select_opts:
+                                    if 'magnet:' in opt.lower():
+                                        ep_magnets.append(opt)
+                                        break
+                            
+                            if ep_magnets:
+                                magnet = ep_magnets[0]
+                                items_with_magnet += 1
+                                try:
+                                    name = self.module.fix_name(self.module.magnet2name(magnet))
+                                    self.items.update({
+                                        name: {'seeds': '0', 'leeches': '?', 'link': magnet}
+                                    })
+                                    if debug:
+                                        print(f"[DEBUG EZTV] Added item from episode page: {name[:50]}...")
+                                except Exception as e:
+                                    if debug:
+                                        print(f"[DEBUG EZTV] Failed to parse magnet from episode page: {e}")
+                                break  # Found one, move to next item
+                    except Exception as e:
+                        if debug:
+                            print(f"[DEBUG EZTV] Error fetching episode page from item: {e}")
+                continue  # Skip to next item
             
             if "magnet:" not in item:
                 continue
