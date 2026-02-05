@@ -85,17 +85,31 @@ class eztv(object):
             if debug:
                 print(f"[DEBUG EZTV] Pattern 4 (any table row) found {len(items)} items")
         
-        # Pattern 5: Look for magnet links anywhere in the data
-        if not items:
-            magnet_links = re.findall(r'(magnet:\?[^\'"\s<>]+)', data, re.IGNORECASE)
+        # Always check for magnet links directly in the HTML (Pattern 5)
+        # This is important because magnet links might not be in table rows
+        magnet_links = re.findall(r'(magnet:\?[^\'"\s<>]+)', data, re.IGNORECASE)
+        if debug:
+            print(f"[DEBUG EZTV] Pattern 5 (direct magnet links) found {len(magnet_links)} magnet links in HTML")
+        
+        # If we found magnet links but no items from table rows, use magnet links directly
+        if magnet_links and not items:
+            items = [f"magnet_link:{link}" for link in magnet_links[:50]]  # Limit to 50
             if debug:
-                print(f"[DEBUG EZTV] Pattern 5 (direct magnet links) found {len(magnet_links)} magnet links")
-            # Create dummy items from magnet links
-            if magnet_links:
-                items = [f"magnet_link:{link}" for link in magnet_links[:50]]  # Limit to 50
+                print(f"[DEBUG EZTV] Using direct magnet links as items")
+        # If we have both table rows and magnet links, add magnet links to items
+        elif magnet_links and items:
+            # Add magnet links as items
+            items.extend([f"magnet_link:{link}" for link in magnet_links[:50]])
+            if debug:
+                print(f"[DEBUG EZTV] Added {len(magnet_links)} direct magnet links to items")
         
         if debug:
             print(f"[DEBUG EZTV] Total items to process: {len(items)}")
+            if items and len(items) > 0:
+                # Show sample of first item to understand structure
+                sample_item = items[0]
+                if not sample_item.startswith("magnet_link:"):
+                    print(f"[DEBUG EZTV] Sample item (first 300 chars): {sample_item[:300]}")
         
         items_with_magnet = 0
         for item in items:
