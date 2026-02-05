@@ -1,8 +1,8 @@
 import pytest
 from docopt import docopt, DocoptExit
 
-from tget.core.we_get import WG
-import tget.core.we_get as we_get
+from tget.core.tget import WG
+import tget.core.tget as tget_core
 
 
 @pytest.mark.parametrize(
@@ -59,5 +59,5 @@ def test_parse_arguments(argv, exp_res):
     ],
 )
 def test_we_get_docopt(argv, exp_res):
-    res = docopt(we_get.__doc__, argv=argv)
+    res = docopt(tget_core.__doc__, argv=argv)
     assert exp_res == res
