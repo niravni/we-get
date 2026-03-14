@@ -203,4 +203,6 @@ def list_wg_modules():
         if "__init__" not in module:
             module = module.split("%s" % (sep))[-1].split(".")[0]
             modules.append(module)
+    # Sort with 1337x last — it returns unreliable results for multi-word searches
+    modules.sort(key=lambda m: (m == "1337x", m))
     return modules
